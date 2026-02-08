@@ -1,5 +1,7 @@
 # helpers/data_utils.py
 import pandas as pd
+import os
+from PIL import Image
 
 def load_and_combine(train_path, val_path, test_path):
     """Load and combine train, validation, and test datasets."""
@@ -32,3 +34,25 @@ def subsample_balanced(df, fake_label=0, true_label=1, n_each=6000):
     true_sample = true_df.sample(n_each, random_state=42)
 
     return pd.concat([fake_sample, true_sample]).sample(frac=1, random_state=42)
+
+
+
+def get_image_path(image_id, base_path='allData_images'):
+    """Find the actual image file with any extension. Returns None if corrupted."""
+    extensions = ['.jpg', '.jpeg', '.png', '.JPG', '.JPEG', '.PNG']
+    
+    for ext in extensions:
+        path = f"{base_path}/{image_id}{ext}"
+        print(path)
+        if os.path.exists(path):
+            try:
+                # Try to open and identify the image
+                with Image.open(path) as img:
+                    img.load()
+                return path
+            except Exception as e:
+                print(f"Warning: Cannot identify image for ID {image_id}: {e}")
+                return None
+    
+    print(f"Warning: Image file not found for ID {image_id}")
+    return None

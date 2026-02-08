@@ -1,5 +1,6 @@
 # detect_and_crop_faces.py
 import os
+import json
 from PIL import Image
 from facenet_pytorch import MTCNN
 from tqdm import tqdm
@@ -7,6 +8,14 @@ import torch
 
 RAW_DIR = "face_dataset"
 CROPS_DIR = "face_crops"   # result: one folder per entity with face_<img>_<face_idx>.jpg
+ENTITIES_JSON = "datasets/processed/all_data_unique_entities.json"
+
+# Load valid entities from JSON
+with open(ENTITIES_JSON, 'r') as f:
+    valid_entities = json.load(f)
+
+# Convert entity names to folder names (spaces -> underscores, lowercase)
+valid_folder_names = {entity.replace(" ", "_") for entity in valid_entities}
 
 # initialize MTCNN (use device if you have GPU)
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -23,6 +32,10 @@ def detect_and_save_crops():
         dst_folder = os.path.join(CROPS_DIR, entity_folder)
 
         if not os.path.isdir(src_folder):
+            continue
+        
+        # Only process folders that match entities in the JSON file
+        if entity_folder not in valid_folder_names:
             continue
 
         create_dir(dst_folder)

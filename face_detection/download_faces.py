@@ -11,7 +11,7 @@ import time
 # --- CONFIG ---
 OUTPUT_DIR = "face_dataset"
 IMAGES_PER_ENTITY = 20
-ENTITY_JSON = "datasets/processed/unique_entities.json"
+ENTITY_JSON = "datasets/processed/all_data_unique_entities.json"
 MAX_CONCURRENT_DOWNLOADS = 10  # Parallel downloads
 TIMEOUT = 15  # Reduced timeout for faster failure detection
 MAX_RETRIES = 3  # Retry failed downloads
@@ -32,10 +32,20 @@ def create_dir(path):
 def download_images_for_entity(entity, output_dir, count=5):
     """
     Download images per entity using Bing Image Downloader.
-    Returns tuple: (entity, success, folder_path)
+    Skips download if entity folder already exists with images.
+    Returns tuple: (entity, success, status, folder_path)
     """
     safe_entity_name = entity.replace(" ", "_").replace("/", "_")
+    dst_dir = os.path.join(output_dir, safe_entity_name)
     
+    # Check if entity folder already exists with images
+    if os.path.exists(dst_dir):
+        existing_images = [f for f in os.listdir(dst_dir) 
+                          if f.lower().endswith(('.jpg', '.jpeg', '.png', '.gif', '.bmp'))]
+        if len(existing_images) > 0:
+            return (entity, True, f"SKIPPED ({len(existing_images)} images exist)", dst_dir)
+    
+    # Download if folder doesn't exist or is empty
     try:
         downloader.download(
             query=entity,
@@ -49,19 +59,18 @@ def download_images_for_entity(entity, output_dir, count=5):
 
         # Handle folder renaming
         src_dir = os.path.join(output_dir, entity)
-        dst_dir = os.path.join(output_dir, safe_entity_name)
 
         if os.path.exists(dst_dir):
-            return (entity, True, dst_dir)
+            return (entity, True, "DOWNLOADED", dst_dir)
 
         if os.path.exists(src_dir):
             os.rename(src_dir, dst_dir)
-            return (entity, True, dst_dir)
+            return (entity, True, "DOWNLOADED", dst_dir)
         
-        return (entity, False, None)
+        return (entity, False, "FAILED (no images found)", None)
     
     except Exception as e:
-        return (entity, False, str(e))
+        return (entity, False, f"FAILED ({str(e)[:30]})", None)
 
 
 async def download_entities_parallel(entities, output_dir, count):
@@ -96,21 +105,25 @@ async def download_entities_parallel(entities, output_dir, count):
 
 def print_summary(results):
     """Print download summary statistics."""
-    successful = sum(1 for _, success, _ in results if success)
-    failed = len(results) - successful
+    successful = sum(1 for _, success, _, _ in results if success)
+    failed = sum(1 for _, success, _, _ in results if not success)
+    downloaded = sum(1 for _, _, status, _ in results if status == "DOWNLOADED")
+    skipped = sum(1 for _, _, status, _ in results if "SKIPPED" in status)
     
-    print(f"\n{'='*50}")
+    print(f"\n{'='*60}")
     print(f"Download Summary:")
     print(f"  Total entities: {len(results)}")
     print(f"  ✓ Successful: {successful}")
+    print(f"    - Downloaded: {downloaded}")
+    print(f"    - Skipped (already exist): {skipped}")
     print(f"  ✗ Failed: {failed}")
-    print(f"{'='*50}")
+    print(f"{'='*60}")
     
     if failed > 0:
         print("\nFailed entities:")
-        for entity, success, info in results:
+        for entity, success, status, _ in results:
             if not success:
-                print(f"  - {entity}")
+                print(f"  - {entity}: {status}")
 
 
 async def main_async():

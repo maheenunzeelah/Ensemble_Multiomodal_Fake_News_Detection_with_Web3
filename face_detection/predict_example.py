@@ -7,6 +7,7 @@ import joblib
 import numpy as np
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print(device)
 mtcnn = MTCNN(keep_all=True, device=device)
 resnet = InceptionResnetV1(pretrained='vggface2').eval().to(device)
 
@@ -26,7 +27,7 @@ def predict_image(path, output_path="output_with_boxes.jpg"):
     
     # Try to load a font, fallback to default if not available
     try:
-        font = ImageFont.truetype("arial.ttf", 20)
+        font = ImageFont.truetype("arial.ttf", 38)
     except:
         font = ImageFont.load_default()
     
@@ -78,4 +79,4 @@ def predict_image(path, output_path="output_with_boxes.jpg"):
     return img
 
 if __name__ == "__main__":
-    predict_image("public_images/public_image_set/1df1iy.jpg", "output_with_boxes.jpg")
+    predict_image("public_images/public_image_set/ddp5c11.jpg", "output_with_boxes.jpg")

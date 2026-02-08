@@ -4,3 +4,15 @@
 /public_images
 /face_model
 /face_embeddings
+/models
+/allData_images
+/results
+/wandb
+/fnd/__pycache__
+/__pycache__
+/image-text/__pycache__
+/image-text/visual_grounding/__pycache__
+/grounded_outputs
+/image-text/visual_grounding/groundingdino_swint_ogc.pth
+/helpers/__pycache__
+.env
